@@ -3,12 +3,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "=== Setting up Viggle Qwen-Image-2.1 Turbo (GGUF) Standalone Runner ==="
+echo "=== Setting up Qwen-Image-2.1 Standalone Runner ==="
 
 # Check for cmake
 if ! command -v cmake &> /dev/null; then
   echo "Error: cmake is required to build stable-diffusion.cpp."
-  echo "Install it on macOS via: brew install cmake"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Install on macOS via: brew install cmake"
+  else
+    echo "Install on Linux / Colab via: sudo apt-get update && sudo apt-get install -y cmake build-essential"
+  fi
   exit 1
 fi
 
@@ -20,10 +24,21 @@ else
   echo "stable-diffusion.cpp already present."
 fi
 
-# Build with Metal acceleration
-echo "Building stable-diffusion.cpp with Apple Silicon Metal acceleration..."
+# Detect platform and GPU backend
+CMAKE_FLAGS=()
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "Platform: macOS detected. Enabling Apple Silicon Metal (-DSD_METAL=ON)..."
+  CMAKE_FLAGS+=("-DSD_METAL=ON")
+elif command -v nvcc &> /dev/null || command -v nvidia-smi &> /dev/null; then
+  echo "Platform: Linux / NVIDIA GPU detected (CUDA). Enabling CUDA (-DSD_CUDA=ON)..."
+  CMAKE_FLAGS+=("-DSD_CUDA=ON")
+else
+  echo "Platform: Generic CPU. Building without GPU acceleration..."
+fi
+
+echo "Configuring and compiling stable-diffusion.cpp..."
 cd "$SCRIPT_DIR/stable-diffusion.cpp"
-cmake -B build -DSD_METAL=ON
+cmake -B build "${CMAKE_FLAGS[@]}"
 cmake --build build --config Release -j
 cd "$SCRIPT_DIR"
 

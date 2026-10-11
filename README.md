@@ -1,6 +1,10 @@
-# Viggle Qwen-Image-2.1 Turbo (GGUF) - Standalone Metal Runner
+# Viggle Qwen-Image-2.1 Turbo (GGUF) - Standalone Runner
 
-A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo** GGUF on Apple Silicon (M-series) Macs using native Metal acceleration. Supports both **Text-to-Image** and **Image Editing** (Image-to-Image).
+A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo** and **Base Qwen-Image-2.1** GGUFs on **Apple Silicon (Metal)** and **Google Colab / Linux (NVIDIA CUDA)**.
+
+Supports both **Text-to-Image** and **Image Editing** (Image-to-Image) with fully configurable Steps, CFG Scale, Negative Prompts, and Resolutions.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb)
 
 ---
 
@@ -43,7 +47,7 @@ A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo
   - Multimodal projector encoding reference images for semantic image edits.
 - **VAE**: [Comfy-Org/Qwen-Image-2.1](https://huggingface.co/Comfy-Org/Qwen-Image-2.1) (`qwen_image_2.1_vae_bf16.safetensors`, ~644 MB)
   - 4-channel RGBA VAE supporting native transparency.
-- **Engine**: [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) compiled with `-DSD_METAL=ON` for Apple Silicon GPU/Unified Memory.
+- **Engine**: [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) compiled with `-DSD_METAL=ON` on macOS or `-DSD_CUDA=ON` on Linux/Colab.
 
 ---
 
@@ -53,24 +57,27 @@ A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo
 ```bash
 ./setup.sh
 ```
-*Clones `stable-diffusion.cpp` and compiles with Apple Silicon Metal acceleration.*
+*Auto-detects Apple Silicon Metal or NVIDIA CUDA (Colab/Linux) and compiles `stable-diffusion.cpp`.*
 
 ### 2. Download Weights
 ```bash
-./download_models.sh
+# Default: Viggle Turbo Q4_K_M (Fast 4-step)
+./download_models.sh --turbo-q4
+
+# Optional: Higher-fidelity Turbo Q8_0 (Near-lossless 4-step)
+./download_models.sh --turbo-q8
+
+# Optional: Full Base Model (For 30-50 steps with negative prompts & CFG)
+./download_models.sh --base-q4
 ```
-*Downloads the DiT GGUF, text encoder, vision projector, and VAE into `models/`.*
 
 ### 3. Generate Image (Text-to-Image)
 ```bash
 # Default quick run (1024x1024, 4 steps)
-./run_inference.sh
+./run_inference.sh "A photorealistic portrait of an old ceramic artisan in Kyoto" "./output/artisan.png"
 
-# Custom prompt
-./run_inference.sh "A cyberpunk street market at night with neon signs and glowing rain reflections" "./output/cyberpunk.png"
-
-# Custom resolution & parameters
-WIDTH=1024 HEIGHT=1024 STEPS=4 CFG=1.0 ./run_inference.sh "Portrait of an astronaut on Mars" "./output/mars.png"
+# Full custom configuration:
+STEPS=4 CFG=1.0 WIDTH=1024 HEIGHT=1024 SEED=42 ./run_inference.sh "A cyberpunk skyline at dusk" "./output/cyberpunk.png"
 ```
 
 ### 4. Edit Existing Image (Image-to-Image)
@@ -81,16 +88,40 @@ WIDTH=1024 HEIGHT=1024 STEPS=4 CFG=1.0 ./run_inference.sh "Portrait of an astron
 
 ---
 
-## Recommended Viggle Turbo Settings
+## Configuration Reference (Environment Variables)
 
-| Setting | Recommended Value | Notes |
-|---|---|---|
-| **Steps** | `4` | Distilled 4-step student |
-| **CFG Scale** | `1.0` | Locked at 1.0 (no classifier-free guidance needed) |
-| **Sampler** | `euler` | FlowMatch Euler |
-| **Scheduler** | `simple` | Simple linear timestep schedule |
-| **Negative Prompt** | Empty / None | Turbo distilled models do not require negative prompts |
-| **Resolutions** | Multiples of 32 | e.g. 512×512, 768×768, 1024×1024 |
+All scripts accept dynamic environment variables:
+
+| Variable | Default | Description | Example |
+|---|---|---|---|
+| `STEPS` | `4` | Denoising steps (use 4–8 for Turbo; 30–50 for Base) | `STEPS=8` |
+| `CFG` | `1.0` | Guidance scale (1.0 for Turbo; 4.0–7.0 for Base) | `CFG=6.0` |
+| `NEGATIVE_PROMPT` | `""` | Negative prompt guidance (used for Base model) | `NEGATIVE_PROMPT="blurry, distorted"` |
+| `WIDTH` | `1024` | Width (must be divisible by 32: 512, 768, 1024, 1280) | `WIDTH=768` |
+| `HEIGHT` | `1024` | Height (must be divisible by 32) | `HEIGHT=768` |
+| `SEED` | `42` | Random number generator seed (`-1` for random) | `SEED=12345` |
+| `MODEL` | Viggle Turbo Q4 | Custom path to any Qwen-Image GGUF model | `MODEL=./models/diffusion_models/Qwen-Image-2.1-Q4_K_M.gguf` |
+| `SAMPLER` | `euler` | Sampling method (`euler`, `dpm++2m`, `heun`) | `SAMPLER=euler` |
+| `SCHEDULE` | `simple` | Sigma scheduler (`simple`, `karras`, `exponential`) | `SCHEDULE=simple` |
+| `FLASH_ATTN`| `false` | Enable Flash Attention in ggml | `FLASH_ATTN=true` |
+
+---
+
+## Turbo vs. Base Model Guide
+
+| Mode | Steps | CFG Scale | Negative Prompt | Best Used For |
+|---|---|---|---|---|
+| **Viggle Turbo (Current)** | `4 – 8` | `1.0` (locked) | Ignored | Fast generation (~37s at 512px, ~2.1 min at 1024px), rapid prototyping, image editing. |
+| **Base Qwen-Image-2.1** | `30 – 50` | `3.5 – 7.0` | Fully Supported | Maximum composition complexity, fine-grained negative guidance, high-precision text rendering. |
+
+---
+
+## Running on Google Colab
+
+Open the included [`colab_runner.ipynb`](colab_runner.ipynb) in Google Colab with a GPU runtime (T4, L4, or A100):
+1. The notebook automatically clones the repository and builds the engine with CUDA.
+2. Form fields allow adjusting `steps`, `cfg_scale`, `width`, `height`, and `prompt` directly from sliders.
+3. Outputs are displayed inline within the notebook.
 
 ---
 
