@@ -13,7 +13,16 @@ A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo
   <em>"A raw 35mm photograph of an elderly craftsman carving wood in a sunlit workshop in Florence, fine skin wrinkles and realistic texture, natural silver hair, sawdust in the air, warm directional golden morning sunlight through dusty windows, shallow depth of field, 85mm f/1.4 portrait, photorealistic"</em>
 </p>
 
-### 2. Image Editing (Before vs After, 4 Steps)
+### 2. High-Resolution Image Editing (1024×1024, 4 Steps)
+<p align="center">
+  <img src="assets/realistic_craftsman.png" width="400" alt="Original Craftsman" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/craftsman_cake.png" width="400" alt="Edited Craftsman Cutting Cake" />
+  <br />
+  <em>Left: Original craftsman carving wood with a saw &nbsp;|&nbsp; Right: Edited — wooden block replaced with chocolate cake, saw replaced with a chef knife</em>
+</p>
+
+### 3. Object / Accessory Editing (Before vs After)
 <p align="center">
   <img src="assets/test_panda.png" width="380" alt="Original Red Panda" />
   &nbsp;&nbsp;&nbsp;&nbsp;
