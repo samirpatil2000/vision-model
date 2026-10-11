@@ -1,0 +1,26 @@
+# Heavy model weights (downloaded via download_models.sh)
+models/
+*.gguf
+*.safetensors
+*.bin
+*.pth
+*.pt
+
+# Submodule / engine build directory (built via setup.sh)
+stable-diffusion.cpp/
+
+# Virtual environment & caches
+.venv/
+__pycache__/
+*.py[cod]
+.cache/
+
+# User output directory (demo assets stored in assets/)
+output/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.github/modernize/
