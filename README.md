@@ -218,13 +218,14 @@ If you already have model weights saved in Google Drive or want to avoid downloa
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner_drive.ipynb) **[`colab_runner_drive.ipynb`](colab_runner_drive.ipynb)**
 
-1. **Cell 3 (Mount Google Drive)**: Mounts `/content/drive` and symlinks your Drive models folder (e.g., `/content/drive/MyDrive/vision-model/models`) to `/content/vision-model/models`.
-2. **Cell 4 (Strict Validation)**: Verifies that all required files exist on Google Drive and prints sizes. **No automatic downloads** are performed—if any file is missing, an explicit error with the expected path is reported.
-3. **Cells 5–7**: Runs Text-to-Image, Segmentation-Aware Editing, and Global Editing directly against the weights stored on Drive.
+1. **Cell 3 (Mount Google Drive)**: Mounts `/content/drive` and symlinks your Drive models folder (defaults to `/content/drive/MyDrive/Colab Notebooks/Vision Models`) to `/content/vision-model/models`.
+2. **Cell 4 (Strict Validation)**: Verifies that all required files exist on Google Drive and prints sizes. **No automatic downloads** are performed during inference runs.
+3. **Cell 4b (First-Time Setup ONLY)**: If your Drive folder is empty, run this cell once to download the model weights (~11 GB) directly into your Google Drive folder. In all future Colab sessions, skip this step!
+4. **Cells 5–7**: Runs Text-to-Image, Segmentation-Aware Editing, and Global Editing directly against the weights stored on Drive.
 
 **Expected Google Drive Folder Layout:**
 ```
-MyDrive/vision-model/models/
+MyDrive/Colab Notebooks/Vision Models/
 ├── diffusion_models/
 │   ├── Qwen-Image-2.1-Q4_K_M.gguf (Base) or Qwen-Image-2.1-viggle-turbo-Q4_K_M.gguf (Turbo)
 ├── text_encoders/
