@@ -4,6 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SD_CLI="$SCRIPT_DIR/stable-diffusion.cpp/build/bin/sd-cli"
 
+if [ ! -f "$SD_CLI" ]; then
+  echo "❌ Error: sd-cli binary not found at $SD_CLI"
+  echo "Please compile the engine first by running: ./setup.sh"
+  exit 1
+fi
+
 MODEL="${MODEL:-$SCRIPT_DIR/models/diffusion_models/Qwen-Image-2.1-viggle-turbo-Q4_K_M.gguf}"
 TEXT_ENCODER="${TEXT_ENCODER:-$SCRIPT_DIR/models/text_encoders/Qwen3VL-8B-Instruct-Q4_K_M.gguf}"
 VAE="${VAE:-$SCRIPT_DIR/models/vae/qwen_image_2.1_vae_bf16.safetensors}"
