@@ -208,7 +208,15 @@ All scripts accept dynamic environment variables:
 
 ## Running on Google Colab
 
-Open the included [`colab_runner.ipynb`](colab_runner.ipynb) in Google Colab with a GPU runtime (T4, L4, or A100):
-1. The notebook automatically clones the repository and builds the engine with CUDA.
-2. Form fields allow adjusting `steps`, `cfg_scale`, `width`, `height`, and `prompt` directly from sliders.
-3. Outputs are displayed inline within the notebook.
+Open the included [`colab_runner.ipynb`](colab_runner.ipynb) in Google Colab with a free GPU runtime (T4, L4, or A100):
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb)
+
+1. **Step 2**: Auto-clones the repository, installs dependencies (`transformers`, `scipy`, `torch`), and compiles `stable-diffusion.cpp` with CUDA.
+2. **Step 3 (Model Selection)**: Choose between **Full Base Model** (`--base-q4`, 30–50 steps) for high-fidelity hand/tool anatomy or **Viggle Turbo** (`--turbo-q4`, 4 steps) for fast generation.
+3. **Step 5 (Segmentation-Aware Editing)**: 
+   - Define the target region: `"the hand saw, wooden block, and hands"` (including the hands allows the model to synthesize a natural knife grip).
+   - Enter editing instruction: `"An elderly baker in a clean kitchen cleanly slicing a gourmet chocolate cake with a chef knife, natural hands"`.
+   - Add negative prompts: `"saw teeth, jagged blade, mangled hands, extra fingers, dirty table, wood shavings, cartoon, blurry"`.
+   - Configure **30–40 steps** and **CFG 4.5**.
+   - Inspect diagnostic mask overlays (`three_mask_panel.png`) and the pixel-preserved final output displayed inline.

@@ -15,8 +15,10 @@ def main():
     parser.add_argument("--output", "-o", default="./output/segmented_edit.png", help="Path to save output image (PNG/TIFF)")
     parser.add_argument("--expand-pixels", type=int, default=16, help="Mask dilation radius in pixels (default: 16)")
     parser.add_argument("--feather-pixels", type=int, default=4, help="Internal feathering band in pixels (default: 4)")
-    parser.add_argument("--steps", type=int, default=4, help="Inference steps (default: 4 for Turbo)")
-    parser.add_argument("--cfg", type=float, default=1.0, help="CFG scale (default: 1.0)")
+    parser.add_argument("--steps", type=int, default=4, help="Inference steps (default: 4 for Turbo, 30-50 for Base)")
+    parser.add_argument("--cfg", type=float, default=1.0, help="CFG scale (default: 1.0 for Turbo, 3.5-5.0 for Base)")
+    parser.add_argument("--negative-prompt", "-n", default="", help="Negative prompt guidance (used with Base model)")
+    parser.add_argument("--model", "-m", default=None, help="Custom path to diffusion model GGUF (e.g. Base model)")
     parser.add_argument("--seed", type=int, default=42, help="RNG seed")
     parser.add_argument("--preview-masks", action="store_true", help="Generate and preview masks without running image generation")
     parser.add_argument("--no-strict", action="store_true", help="Disable strict preservation check (not recommended)")
@@ -31,9 +33,14 @@ def main():
     print(f" Source Image: {args.image}")
     print(f" Target Object: {args.target}")
     print(f" Instruction:   {args.instruction}")
+    if args.negative_prompt:
+        print(f" Negative:      {args.negative_prompt}")
+    if args.model:
+        print(f" Custom Model:  {args.model}")
     print(f" Output Target: {args.output}")
     print(f" Expand Pixels: {args.expand_pixels}")
     print(f" Steps:         {args.steps}")
+    print(f" CFG:           {args.cfg}")
     print(f" Mode:          {'PREVIEW ONLY' if args.preview_masks else 'FULL EDIT'}")
     print("==========================================================")
 
@@ -49,6 +56,8 @@ def main():
             cfg_scale=args.cfg,
             seed=args.seed,
             preview_only=args.preview_masks,
+            negative_prompt=args.negative_prompt if args.negative_prompt else None,
+            model_path=args.model if args.model else None,
         )
 
         if args.preview_masks:

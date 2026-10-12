@@ -133,5 +133,53 @@ class TestPipelineEndToEnd(unittest.TestCase):
                 self.assertTrue(res["preview_only"])
                 self.assertIn("diagnostic_artifacts", res)
 
+    @patch("subprocess.run")
+    def test_negative_prompt_and_custom_model_forwarding(self, mock_subproc):
+        def side_effect(cmd, **kwargs):
+            out_file = cmd[cmd.index("-o") + 1]
+            w = int(cmd[cmd.index("-W") + 1])
+            h = int(cmd[cmd.index("-H") + 1])
+            patch_arr = np.zeros((h, w, 3), dtype=np.uint8)
+            Image.fromarray(patch_arr).save(out_file, format="PNG")
+            res = MagicMock()
+            res.returncode = 0
+            return res
+
+        mock_subproc.side_effect = side_effect
+        editor = SegmentedEditor(strict_mode=True)
+
+        mock_mask = np.zeros((512, 512), dtype=np.uint8)
+        mock_mask[200:300, 200:300] = 255
+        mock_seg = MagicMock()
+        mock_seg.segment.return_value = SegmentationResult(
+            target_mask=mock_mask,
+            confidence=0.95,
+            bounding_box=(200, 200, 300, 300),
+            metadata={"is_valid": True},
+            ambiguity_detected=False,
+        )
+
+        custom_model = "/tmp/custom_base_model.gguf"
+        negative_text = "mangled hands, saw teeth, extra fingers"
+
+        with patch.object(editor, "_get_segmenter", return_value=mock_seg):
+            editor.edit(
+                image_path=self.image_path,
+                target_description="red square",
+                edit_instruction="change to black square",
+                output_path=self.output_path,
+                negative_prompt=negative_text,
+                model_path=custom_model,
+            )
+
+        self.assertTrue(mock_subproc.called)
+        cmd_called = mock_subproc.call_args[0][0]
+        # Verify custom model was passed
+        self.assertIn("--diffusion-model", cmd_called)
+        self.assertEqual(cmd_called[cmd_called.index("--diffusion-model") + 1], os.path.abspath(custom_model))
+        # Verify negative prompt was passed
+        self.assertIn("-n", cmd_called)
+        self.assertEqual(cmd_called[cmd_called.index("-n") + 1], negative_text)
+
 if __name__ == "__main__":
     unittest.main()

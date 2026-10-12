@@ -19,6 +19,8 @@ STEPS="${STEPS:-4}"
 CFG="${CFG:-1.0}"
 SEED="${SEED:-42}"
 PREVIEW="${PREVIEW:-false}"
+MODEL="${MODEL:-}"
+NEGATIVE_PROMPT="${NEGATIVE_PROMPT:-}"
 
 mkdir -p "$(dirname "$OUTPUT")"
 
@@ -34,6 +36,14 @@ CMD=(
   --cfg "$CFG"
   --seed "$SEED"
 )
+
+if [ -n "$NEGATIVE_PROMPT" ]; then
+  CMD+=(--negative-prompt "$NEGATIVE_PROMPT")
+fi
+
+if [ -n "$MODEL" ]; then
+  CMD+=(--model "$MODEL")
+fi
 
 if [ "$PREVIEW" = "true" ]; then
   CMD+=(--preview-masks)

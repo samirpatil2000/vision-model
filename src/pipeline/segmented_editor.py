@@ -70,6 +70,8 @@ class SegmentedEditor:
         preview_only: bool = False,
         instance_index: Optional[int] = None,
         custom_allowed_mask: Optional[np.ndarray] = None,
+        negative_prompt: Optional[str] = None,
+        model_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         start_time = time.time()
         metrics: Dict[str, Any] = {}
@@ -168,9 +170,10 @@ class SegmentedEditor:
             temp_crop_out = os.path.join(tmp_dir, "crop_output.png")
             crop_img.save(temp_crop_in, format="PNG")
 
+            active_model = os.path.abspath(model_path) if model_path else self.model_path
             cmd = [
                 self.sd_cli_path,
-                "--diffusion-model", self.model_path,
+                "--diffusion-model", active_model,
                 "--llm", self.llm_path,
                 "--llm_vision", self.vision_path,
                 "--vae", self.vae_path,
@@ -185,6 +188,9 @@ class SegmentedEditor:
                 "-s", str(seed),
                 "-o", temp_crop_out,
             ]
+
+            if negative_prompt and negative_prompt.strip():
+                cmd.extend(["-n", negative_prompt.strip()])
 
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if proc.returncode != 0:
