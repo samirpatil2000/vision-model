@@ -4,7 +4,10 @@ A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo
 
 Supports **Text-to-Image**, **Global Image-to-Image**, and **Segmentation-Aware Pixel-Preserving Image Editing** with zero protected-pixel degradation.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb)
+| Notebook | Description | Launch in Colab |
+| :--- | :--- | :---: |
+| **Google Drive Edition (Zero-Download)** | Mounts Google Drive & loads existing weights directly without re-downloading | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner_drive.ipynb) |
+| **Standard Edition (Auto-Download)** | Fresh standalone runner with one-click HuggingFace downloads | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb) |
 
 ---
 
@@ -208,15 +211,42 @@ All scripts accept dynamic environment variables:
 
 ## Running on Google Colab
 
-Open the included [`colab_runner.ipynb`](colab_runner.ipynb) in Google Colab with a free GPU runtime (T4, L4, or A100):
+Two dedicated notebooks are available depending on whether you want to load models from Google Drive or download them afresh:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb)
+### Option A: Google Drive Edition (Recommended — Zero Re-downloads)
+If you already have model weights saved in Google Drive or want to avoid downloading ~11 GB on every Colab session:
 
-1. **Step 2**: Auto-clones the repository, installs dependencies (`transformers`, `scipy`, `torch`), and compiles `stable-diffusion.cpp` with CUDA.
-2. **Step 3 (Model Selection)**: Choose between **Full Base Model** (`--base-q4`, 30–50 steps) for high-fidelity hand/tool anatomy or **Viggle Turbo** (`--turbo-q4`, 4 steps) for fast generation.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner_drive.ipynb) **[`colab_runner_drive.ipynb`](colab_runner_drive.ipynb)**
+
+1. **Cell 3 (Mount Google Drive)**: Mounts `/content/drive` and symlinks your Drive models folder (e.g., `/content/drive/MyDrive/vision-model/models`) to `/content/vision-model/models`.
+2. **Cell 4 (Strict Validation)**: Verifies that all required files exist on Google Drive and prints sizes. **No automatic downloads** are performed—if any file is missing, an explicit error with the expected path is reported.
+3. **Cells 5–7**: Runs Text-to-Image, Segmentation-Aware Editing, and Global Editing directly against the weights stored on Drive.
+
+**Expected Google Drive Folder Layout:**
+```
+MyDrive/vision-model/models/
+├── diffusion_models/
+│   ├── Qwen-Image-2.1-Q4_K_M.gguf (Base) or Qwen-Image-2.1-viggle-turbo-Q4_K_M.gguf (Turbo)
+├── text_encoders/
+│   ├── Qwen3VL-8B-Instruct-Q4_K_M.gguf
+│   └── mmproj-Qwen3VL-8B-Instruct-F16.gguf
+└── vae/
+    └── qwen_image_2.1_vae_bf16.safetensors
+```
+
+---
+
+### Option B: Standard Edition (One-Click Auto-Download)
+For fresh Colab environments without Google Drive storage:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb) **[`colab_runner.ipynb`](colab_runner.ipynb)**
+
+1. **Step 2**: Auto-clones the repository, installs dependencies, and compiles `stable-diffusion.cpp` with CUDA.
+2. **Step 3 (Model Selection)**: Downloads the **Full Base Model** (`--base-q4`, 30–50 steps) or **Viggle Turbo** (`--turbo-q4`, 4 steps) directly from HuggingFace.
 3. **Step 5 (Segmentation-Aware Editing)**: 
-   - Define the target region: `"the hand saw, wooden block, and hands"` (including the hands allows the model to synthesize a natural knife grip).
+   - Define the target region: `"the hand saw, wooden block, and hands"`.
    - Enter editing instruction: `"An elderly baker in a clean kitchen cleanly slicing a gourmet chocolate cake with a chef knife, natural hands"`.
-   - Add negative prompts: `"saw teeth, jagged blade, mangled hands, extra fingers, dirty table, wood shavings, cartoon, blurry"`.
+   - Negative prompts: `"saw teeth, jagged blade, mangled hands, extra fingers, dirty table, wood shavings, cartoon, blurry"`.
    - Configure **30–40 steps** and **CFG 4.5**.
    - Inspect diagnostic mask overlays (`three_mask_panel.png`) and the pixel-preserved final output displayed inline.
+
