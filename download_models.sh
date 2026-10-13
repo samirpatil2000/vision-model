@@ -36,17 +36,16 @@ case "$VARIANT" in
       Qwen-Image-2.1-viggle-turbo-Q8_0.gguf --local-dir "$SCRIPT_DIR/models/diffusion_models"
     ;;
   --base|--base-q4)
-    echo "Downloading Base Qwen-Image 2.1 DiT (Q4, ~5.5 GB, 30-50 steps)..."
-    $HF_CMD realrebelai/Qwen-Image-2.1_GGUFs \
-      Qwen-Image-2.1-Q4.gguf --local-dir "$SCRIPT_DIR/models/diffusion_models"
-    # Create alias for compatibility with scripts looking for Q4_K_M
-    (cd "$SCRIPT_DIR/models/diffusion_models" && ln -sf Qwen-Image-2.1-Q4.gguf Qwen-Image-2.1-Q4_K_M.gguf)
+    echo "Downloading Base Qwen-Image 2.1 DiT (Q4_K, ~5.2 GB, 30-50 steps)..."
+    $HF_CMD leejet/Qwen-Image-2.1-GGUF \
+      qwen_image_2.1-Q4_K.gguf --local-dir "$SCRIPT_DIR/models/diffusion_models"
+    (cd "$SCRIPT_DIR/models/diffusion_models" && ln -sf qwen_image_2.1-Q4_K.gguf Qwen-Image-2.1-Q4_K_M.gguf)
     ;;
   --base-q8)
-    echo "Downloading Base Qwen-Image 2.1 DiT (Q8, ~7.2 GB, 30-50 steps)..."
-    $HF_CMD realrebelai/Qwen-Image-2.1_GGUFs \
-      Qwen-Image-2.1-Q8.gguf --local-dir "$SCRIPT_DIR/models/diffusion_models"
-    (cd "$SCRIPT_DIR/models/diffusion_models" && ln -sf Qwen-Image-2.1-Q8.gguf Qwen-Image-2.1-Q8_0.gguf)
+    echo "Downloading Base Qwen-Image 2.1 DiT (Q8_0, ~7.2 GB, 30-50 steps)..."
+    $HF_CMD leejet/Qwen-Image-2.1-GGUF \
+      qwen_image_2.1-Q8_0.gguf --local-dir "$SCRIPT_DIR/models/diffusion_models"
+    (cd "$SCRIPT_DIR/models/diffusion_models" && ln -sf qwen_image_2.1-Q8_0.gguf Qwen-Image-2.1-Q8_0.gguf)
     ;;
   *)
     echo "Unknown variant: $VARIANT"
