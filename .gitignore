@@ -1,5 +1,6 @@
 # Heavy model weights (downloaded via download_models.sh)
 models/
+archive/models/
 *.gguf
 *.safetensors
 *.bin
@@ -8,6 +9,7 @@ models/
 
 # Submodule / engine build directory (built via setup.sh)
 stable-diffusion.cpp/
+archive/stable-diffusion.cpp/
 
 # Virtual environment & caches
 .venv/

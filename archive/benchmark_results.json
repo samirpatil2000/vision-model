@@ -1,0 +1,81 @@
+{
+  "benchmark": "Qwen-Image-2.1-viggle-turbo-Modal-Parallel",
+  "num_requests": 5,
+  "successful_requests": 5,
+  "total_wall_clock_s": 24.25,
+  "throughput_images_per_sec": 0.206,
+  "throughput_images_per_min": 12.4,
+  "latency_stats": {
+    "min_s": 9.58,
+    "max_s": 24.25,
+    "mean_s": 16.37,
+    "median_s": 15.82
+  },
+  "runs": [
+    {
+      "id": 1,
+      "name": "Chameleon Macro",
+      "filename": "parallel_1_chameleon.png",
+      "prompt": "A close-up macro portrait of a vibrant chameleon on a lush jungle branch, vivid green and orange scales, bokeh background, national geographic style",
+      "seed": 101,
+      "latency_s": 12.24,
+      "dispatch_offset_s": 0.0,
+      "finish_offset_s": 12.24,
+      "resolution": "1024x1024",
+      "file_size_kb": 1743.2,
+      "success": true
+    },
+    {
+      "id": 2,
+      "name": "Tokyo Ramen Shop",
+      "filename": "parallel_2_tokyo_ramen.png",
+      "prompt": "A cozy Tokyo ramen shop on a rainy night, warm glowing paper lanterns, steam rising, reflections in puddles, cinematic film still",
+      "seed": 102,
+      "latency_s": 19.96,
+      "dispatch_offset_s": 0.0,
+      "finish_offset_s": 19.96,
+      "resolution": "1024x1024",
+      "file_size_kb": 1657.1,
+      "success": true
+    },
+    {
+      "id": 3,
+      "name": "Cliffside Castle",
+      "filename": "parallel_3_castle.png",
+      "prompt": "A majestic medieval fantasy castle perched on high rocky cliffs above a sea of clouds, golden hour sunlight, hyperrealistic",
+      "seed": 103,
+      "latency_s": 24.25,
+      "dispatch_offset_s": 0.0,
+      "finish_offset_s": 24.25,
+      "resolution": "1024x1024",
+      "file_size_kb": 1794.7,
+      "success": true
+    },
+    {
+      "id": 4,
+      "name": "Cyberpunk Hypercar",
+      "filename": "parallel_4_hypercar.png",
+      "prompt": "A futuristic sleek hypercar driving through a neon cyber city at twilight, light trails, wet asphalt, 8k octane render",
+      "seed": 104,
+      "latency_s": 15.82,
+      "dispatch_offset_s": 0.0,
+      "finish_offset_s": 15.82,
+      "resolution": "1024x1024",
+      "file_size_kb": 1823.0,
+      "success": true
+    },
+    {
+      "id": 5,
+      "name": "Ancient Library",
+      "filename": "parallel_5_library.png",
+      "prompt": "An ancient library with towering wooden bookshelves reaching the vaulted ceiling, warm fireplace, sunbeams through stained glass",
+      "seed": 105,
+      "latency_s": 9.58,
+      "dispatch_offset_s": 0.0,
+      "finish_offset_s": 9.58,
+      "resolution": "1024x1024",
+      "file_size_kb": 2116.0,
+      "success": true
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# Python dependencies for the vision-model repo (pinned minimums; tested with the versions in
+# parentheses on Python 3.13). The image engine itself is stable-diffusion.cpp, built by ./setup.sh.
+numpy>=1.24            # (2.5.4)
+pillow>=10.1           # (12.3.0)  ImageFont.load_default(size=) in previs assembly
+scipy>=1.10            # (1.18.1)
+torch>=2.1             # (2.14.1)  CLIPSeg segmentation / QA embeddings
+torchvision>=0.16      # (0.29.1)
+transformers>=4.40     # (5.19.0)  CLIPSeg
+pydantic>=2.7          # (2.14.1)  previs ScenePlan schema
+requests>=2.31         # (2.34.2)  sd-server client
+gguf>=0.10             # (0.19.0)  model metadata inspection
+safetensors>=0.4       # (0.8.0)
+huggingface_hub>=0.34  # (2.2.0)   `hf` CLI used by download_models.sh

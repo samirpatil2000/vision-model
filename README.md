@@ -1,253 +1,192 @@
-# Viggle Qwen-Image-2.1 Turbo (GGUF) - Standalone Runner & Segmentation-Aware Editor
+# Qwen-Image-2.1 + Viggle Turbo LoRA on Modal
 
-A standalone, ComfyUI-free environment for running **Viggle Qwen-Image-2.1 Turbo** and **Base Qwen-Image-2.1** GGUFs on **Apple Silicon (Metal)** and **Google Colab / Linux (NVIDIA CUDA)**.
+High-performance, serverless deployment of **Qwen-Image-2.1** accelerated with **Viggle Turbo LoRA (v0.3, 6-step distillation, rank 256)** running on **Nvidia L40S (48 GB)** GPUs via [Modal](https://modal.com).
 
-Supports **Text-to-Image**, **Global Image-to-Image**, and **Segmentation-Aware Pixel-Preserving Image Editing** with zero protected-pixel degradation.
-
-| Notebook | Description | Launch in Colab |
-| :--- | :--- | :---: |
-| **Google Drive Edition (Zero-Download)** | Mounts Google Drive & loads existing weights directly without re-downloading | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner_drive.ipynb) |
-| **Standard Edition (Auto-Download)** | Fresh standalone runner with one-click HuggingFace downloads | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb) |
+Generates photorealistic **1024×1024 RGBA** images in **~2.9 seconds** of GPU inference time (~8–10s end-to-end including network transit) with **zero classifier-free guidance (CFG)**, costing approximately **$0.0022 per image** (~460 images per $1.00).
 
 ---
 
-## Showcase
+## Key Highlights
 
-### 1. Segmentation-Aware Pixel-Preserving Image Editing (Zero-Drift Invariant)
-<p align="center">
-  <img src="assets/three_mask_panel.png" width="850" alt="Three Mask Diagnostic Panel" />
-  <br />
-  <em>Top-Left: Original Image (1024×1024) | Top-Right: Target Mask localized via text ("the hand saw and wooden block")<br />Bottom-Left: Allowed Edit Mask (Red) | Bottom-Right: Protected Pixels (Green - Bit-for-bit exact 0 pixel drift)</em>
-</p>
-
-<p align="center">
-  <img src="assets/benchmark_comparison.png" width="850" alt="Preservation Benchmark Comparison" />
-  <br />
-  <em>Comparison: 1. Original Source &nbsp;|&nbsp; 2. Target/Allowed Overlay &nbsp;|&nbsp; 3. Global Baseline (99.95% pixels mutated across background) &nbsp;|&nbsp; 4. Segmentation-Guided Edit (Exact 0 protected pixel drift)</em>
-</p>
-
-### 2. Photorealistic Generation (1024×1024, 4 Steps)
-<p align="center">
-  <img src="assets/realistic_craftsman.png" width="600" alt="Photorealistic Craftsman" />
-  <br />
-  <em>"A raw 35mm photograph of an elderly craftsman carving wood in a sunlit workshop in Florence, fine skin wrinkles and realistic texture, natural silver hair, sawdust in the air, warm directional golden morning sunlight through dusty windows, shallow depth of field, 85mm f/1.4 portrait, photorealistic"</em>
-</p>
-
-### 3. Object / Accessory Editing (Before vs After)
-<p align="center">
-  <img src="assets/test_panda.png" width="380" alt="Original Red Panda" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="assets/edited_panda.png" width="380" alt="Edited Red Panda" />
-  <br />
-  <em>Left: Original ("a cute red panda with aviator goggles") &nbsp;|&nbsp; Right: Edited ("Change the aviator goggles to futuristic glowing blue sunglasses")</em>
-</p>
+- **Ultra-Fast 6-Step Generation**: Distilled from 40 steps down to 6 steps using Viggle Turbo v0.3 LoRA with calibrated flow-matching sigmas.
+- **Serverless Cloud GPU (Nvidia L40S)**: Peaks at ~26 GB VRAM during inference, comfortably fitting within the L40S's 48 GB memory at $1.95/hr (less than half the cost of an H100).
+- **Zero Reload Overhead (Warm Containers)**: Configured with `scaledown_window=300` (5 minutes) and persistent deployment (`modal deploy`), keeping the model resident in GPU memory so subsequent prompts skip model initialization entirely.
+- **Persistent Weight Caching**: Model weights and LoRAs are cached inside a persistent `modal.Volume` (`hf-cache`), eliminating repetitive 20 GB downloads.
+- **Parallel Dispatch & Benchmarking**: Supports concurrent async requests (`Model.generate.remote.aio`) to generate image batches simultaneously.
+- **FastAPI Web Endpoint**: Includes a built-in HTTPS endpoint for direct web integration.
 
 ---
 
-## Segmentation-Aware Pixel-Preserving Editing
+## File Structure
 
-Standard generative diffusion editing mutates pixels across the entire canvas—even in background walls, windows, hands, and clothes where no changes were requested. 
-
-The **Segmentation-Aware Editor** solves this with a mathematically verified invariant:
-$$\max_{(x,y) \in \text{Protected}} |O(x,y) - I(x,y)| \equiv 0$$
-$$\text{changed\_protected\_pixels} \equiv 0$$
-
-### Key Features
-1. **Natural Language Localization**: Zero-shot target localization using CLIPSeg (`CIDAS/clipseg-rd64-refined`).
-2. **Three-Mask Disentanglement**:
-   - $M_{\text{target}}$: Raw semantic segmentation identifying the object.
-   - $M_{\text{allowed}}$: Structurally dilated region authorizing boundary clearing and blending.
-   - $M_{\text{protected}}$: Strict binary complement ($255 - M_{\text{allowed}}$) containing immutable original pixels.
-3. **Resolution-Aware Context Cropper**: Snaps crops to multiples of 32 for Qwen-Image VAE compliance, preserves perspective and lighting context, and maps outputs back through invertible coordinate tracking.
-4. **Strict Pixel Compositor**: Bit-for-bit copy of protected pixels with internal feathering strictly bounded within $M_{\text{allowed}}$.
-5. **Sequential Memory Management**: Unloads segmentation models and purges PyTorch MPS memory cache before launching the diffusion DiT.
-
-### Usage
-
-#### Quickstart Bash Wrapper
-```bash
-# Full segmentation-aware edit
-./edit_segmented.sh \
-  "assets/realistic_craftsman.png" \
-  "the hand saw and wooden block" \
-  "Replace with a chef knife cutting a chocolate cake" \
-  "output/segmented_craftsman.png"
-
-# Fast preview mode (generates masks and diagnostic overlays without running generation)
-PREVIEW=true ./edit_segmented.sh \
-  "assets/realistic_craftsman.png" \
-  "the hand saw and wooden block" \
-  "Replace with a chef knife cutting a chocolate cake" \
-  "output/preview.png"
 ```
-
-#### Python CLI
-```bash
-python edit_segmented.py \
-  --image assets/realistic_craftsman.png \
-  --target "the hand saw and wooden block" \
-  --instruction "Replace with a chef knife cutting a chocolate cake" \
-  --output output/segmented_craftsman.png \
-  --expand-pixels 16 \
-  --feather-pixels 4 \
-  --steps 4
+vision-model/
+├── qwen_image_turbo.py   # Modal app definition, container image, model loading & endpoints
+├── generate.py           # Fast local CLI client to query deployed model without reloading
+├── generate_batch.py     # Concurrent multi-image batch benchmark suite
+├── PAPERCUTS.md          # Environment gotchas, resolution notes, and dependency fixes
+├── archive/              # Archived legacy local deployment tools, GGUFs, and previous runs
+│   ├── models/           # Local GGUF models & text encoders (Q4_K_M, mmproj)
+│   ├── stable-diffusion.cpp/ # Local C++ inference engine build
+│   ├── download_models.sh# Legacy GGUF downloader
+│   ├── setup.sh          # Legacy local build script
+│   ├── run_inference.sh  # Legacy local text-to-image runner
+│   ├── edit_segmented.py # Legacy segmentation-aware pixel preservation editor
+│   ├── colab_runner*.ipynb # Legacy Colab notebooks
+│   └── *.png / *.json    # Test outputs & benchmark artifacts
 ```
-
----
-
-## Preservation Benchmark
-
-Tested on `assets/realistic_craftsman.png` (1024×1024, 1,048,576 pixels):
-
-| Metric | Global Baseline (`edit_image.sh`) | Segmentation-Guided (`edit_segmented.py`) | Invariant Required |
-| :--- | :---: | :---: | :---: |
-| **Changed Protected Pixels** | `948,744` (99.95%) | **`0` (0.00%)** | `0` (Zero Tolerance) |
-| **Max Error on Protected ($\Delta L_\infty$)** | `236` | **`0`** | `0` |
-| **Mean Absolute Error (MAE)** | `22.4779` | **`0.0000`** | `0.0000` |
-| **Protected MSE** | `1803.8621` | **`0.0000`** | `0.0000` |
-| **Protected PSNR** | `15.57 dB` | **`Infinity (Exact Match)`** | `$\infty$` |
-| **Allowed Region Edit MAE** | `39.89` | `45.88` | Semantic Modification |
-
-Run the automated benchmark suite:
-```bash
-python benchmark_preservation.py
-```
-
----
-
-## Architectural Investigation: Native DiT Mask Conditioning
-
-We evaluated integrating mask conditioning directly into the Qwen-Image 2.1 DiT weights:
-1. **Current Engine Limitation**: `stable-diffusion.cpp` operates Qwen-Image in reference edit mode (visual tokens via Qwen3-VL vision projector). Inpainting concatenation is enabled only for Flux Fill / SDXL Inpaint.
-2. **Channel Expansion Adapter Prototype**: In `src/architecture/mask_adapter.py`, we implemented a 33-channel patch projection adapter ($z_t \,\|\, z_{\text{masked}} \,\|\, M$) initialized with zero weights on new channels for identity preservation at step 0.
-3. **The Preservation Theorem**: Because latent VAEs are lossy autoencoders ($\text{Dec}(\text{Enc}(I)) \neq I$, introducing $\Delta \approx 4-8$ across unchanged regions), **native latent inpainting can never guarantee exact pixel preservation ($L_\infty \equiv 0$) on its own**. The pixel compositor remains mathematically necessary.
-
-To read the full technical analysis:
-```bash
-cat output/benchmarks/ARCHITECTURE_INVESTIGATION.md
-python src/architecture/mask_adapter.py
-```
-
----
-
-## Architecture Overview
-
-- **Diffusion Model**: [realrebelai/Viggle_Qwen-Image-2.1-Turbo_GGUFs](https://huggingface.co/realrebelai/Viggle_Qwen-Image-2.1-Turbo_GGUFs) (`Qwen-Image-2.1-viggle-turbo-Q4_K_M.gguf`, ~5.17 GB)
-  - 4-step distilled FlowMatch DiT transformer fine-tuned by Viggle.
-- **Text Encoder**: [Qwen/Qwen3-VL-8B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF) (`Qwen3VL-8B-Instruct-Q4_K_M.gguf`, ~4.68 GB)
-  - Native Qwen3-VL multimodal text encoder.
-- **Vision Projector (for Image Editing)**: [Qwen/Qwen3-VL-8B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF) (`mmproj-Qwen3VL-8B-Instruct-F16.gguf`, ~1.08 GB)
-  - Multimodal projector encoding reference images for semantic image edits.
-- **VAE**: [Comfy-Org/Qwen-Image-2.1](https://huggingface.co/Comfy-Org/Qwen-Image-2.1) (`qwen_image_2.1_vae_bf16.safetensors`, ~644 MB)
-  - 4-channel RGBA VAE supporting native transparency.
-- **Segmentation Subsystem**: `CIDAS/clipseg-rd64-refined` with MPS/CPU acceleration.
-- **Engine**: [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) compiled with `-DSD_METAL=ON` on macOS or `-DSD_CUDA=ON` on Linux/Colab.
 
 ---
 
 ## Quickstart
 
-### 1. Build Engine
+### 1. Prerequisites & Authentication
+
+Install the Modal client in your Python environment and log in:
+
 ```bash
-./setup.sh
-```
-*Auto-detects Apple Silicon Metal or NVIDIA CUDA (Colab/Linux) and compiles `stable-diffusion.cpp`.*
-
-### 2. Download Weights
-```bash
-# Default: Viggle Turbo Q4_K_M (Fast 4-step)
-./download_models.sh --turbo-q4
-
-# Optional: Higher-fidelity Turbo Q8_0 (Near-lossless 4-step)
-./download_models.sh --turbo-q8
-
-# Optional: Full Base Model (For 30-50 steps with negative prompts & CFG)
-./download_models.sh --base-q4
+pip install modal
+modal setup
 ```
 
-### 3. Generate Image (Text-to-Image)
+Verify your active workspace profile:
 ```bash
-# Default quick run (1024x1024, 4 steps)
-./run_inference.sh "A photorealistic portrait of an old ceramic artisan in Kyoto" "./output/artisan.png"
-
-# Full custom configuration:
-STEPS=4 CFG=1.0 WIDTH=1024 HEIGHT=1024 SEED=42 ./run_inference.sh "A cyberpunk skyline at dusk" "./output/cyberpunk.png"
+modal profile current
 ```
 
-### 4. Global Image Editing (Image-to-Image)
-```bash
-# Usage: ./edit_image.sh <input_image> <prompt> [output_image]
-./edit_image.sh "./output/test_panda.png" "Change the aviator goggles to futuristic glowing blue sunglasses" "./output/edited_panda.png"
-```
-
-### 5. Automated Tests
-```bash
-python -m unittest discover tests
-```
-*Runs 19 deterministic unit and integration tests covering mask generation, compositing invariants, crop coordinates, format preservation, and architectural adapters.*
+> **Note:** Running GPU functions on Modal requires a payment method on file in your [Modal Settings](https://modal.com/settings/billing). The monthly **$30 free compute credit** applies first before any charges occur.
 
 ---
 
-## Configuration Reference (Environment Variables)
+### 2. Run a One-Off Test
 
-All scripts accept dynamic environment variables:
+To run a single test prompt in an ephemeral container:
 
-| Variable | Default | Description | Example |
-|---|---|---|---|
-| `STEPS` | `4` | Denoising steps (use 4–8 for Turbo; 30–50 for Base) | `STEPS=8` |
-| `CFG` | `1.0` | Guidance scale (1.0 for Turbo; 4.0–7.0 for Base) | `CFG=6.0` |
-| `NEGATIVE_PROMPT` | `""` | Negative prompt guidance (used for Base model) | `NEGATIVE_PROMPT="blurry, distorted"` |
-| `WIDTH` | `1024` | Width (must be divisible by 32: 512, 768, 1024, 1280) | `WIDTH=768` |
-| `HEIGHT` | `1024` | Height (must be divisible by 32) | `HEIGHT=768` |
-| `SEED` | `42` | Random number generator seed (`-1` for random) | `SEED=12345` |
-| `EXPAND_PIXELS` | `16` | Dilation radius for allowed edit mask | `EXPAND_PIXELS=20` |
-| `FEATHER_PIXELS`| `4` | Blending feather radius within allowed region | `FEATHER_PIXELS=6` |
-| `MODEL` | Viggle Turbo Q4 | Custom path to any Qwen-Image GGUF model | `MODEL=./models/diffusion_models/Qwen-Image-2.1-Q4_K_M.gguf` |
-| `SAMPLER` | `euler` | Sampling method (`euler`, `dpm++2m`, `heun`) | `SAMPLER=euler` |
-| `SCHEDULE` | `simple` | Sigma scheduler (`simple`, `karras`, `exponential`) | `SCHEDULE=simple` |
-| `FLASH_ATTN`| `false` | Enable Flash Attention in ggml | `FLASH_ATTN=true` |
+```bash
+modal run qwen_image_turbo.py --prompt "a red fox in fresh snow, golden hour photo"
+```
+The resulting image will be downloaded and saved locally to `output.png`.
 
 ---
 
-## Running on Google Colab
+### 3. Interactive CLI Session (Warm Container)
 
-Two dedicated notebooks are available depending on whether you want to load models from Google Drive or download them afresh:
+To test multiple prompts back-to-back in your terminal without waiting for the model to reload between prompts:
 
-### Option A: Google Drive Edition (Recommended — Zero Re-downloads)
-If you already have model weights saved in Google Drive or want to avoid downloading ~11 GB on every Colab session:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner_drive.ipynb) **[`colab_runner_drive.ipynb`](colab_runner_drive.ipynb)**
-
-1. **Cell 3 (Mount Google Drive)**: Mounts `/content/drive` and symlinks your Drive models folder (defaults to `/content/drive/MyDrive/Colab Notebooks/Vision Models`) to `/content/vision-model/models`.
-2. **Cell 4 (Strict Validation)**: Verifies that all required files exist on Google Drive and prints sizes. **No automatic downloads** are performed during inference runs.
-3. **Cell 4b (First-Time Setup ONLY)**: If your Drive folder is empty, run this cell once to download the model weights (~11 GB) directly into your Google Drive folder. In all future Colab sessions, skip this step!
-4. **Cells 5–7**: Runs Text-to-Image, Segmentation-Aware Editing, and Global Editing directly against the weights stored on Drive.
-
-**Expected Google Drive Folder Layout:**
+```bash
+modal run qwen_image_turbo.py --interactive
 ```
-MyDrive/Colab Notebooks/Vision Models/
-├── diffusion_models/
-│   ├── Qwen-Image-2.1-Q4_K_M.gguf (Base) or Qwen-Image-2.1-viggle-turbo-Q4_K_M.gguf (Turbo)
-├── text_encoders/
-│   ├── Qwen3VL-8B-Instruct-Q4_K_M.gguf
-│   └── mmproj-Qwen3VL-8B-Instruct-F16.gguf
-└── vae/
-    └── qwen_image_2.1_vae_bf16.safetensors
+
+This starts a single persistent container on Modal, loads the model once, and lets you type prompts interactively:
+
+```text
+⚡ Interactive mode active — container will stay warm in GPU memory between prompts.
+Type a prompt and press Enter. Type 'exit' or 'q' to stop.
+
+Enter prompt > a cinematic retro sports car in neon rain
+Generating image 1...
+✓ Saved output_1.png in 3.42s
+
+Enter prompt > an emerald hummingbird feeding from an orchid
+Generating image 2...
+✓ Saved output_2.png in 3.18s
 ```
 
 ---
 
-### Option B: Standard Edition (One-Click Auto-Download)
-For fresh Colab environments without Google Drive storage:
+### 4. Deploy as a Persistent Cloud Service
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samirpatil2000/vision-model/blob/main/colab_runner.ipynb) **[`colab_runner.ipynb`](colab_runner.ipynb)**
+Deploy the app permanently to your Modal workspace:
 
-1. **Step 2**: Auto-clones the repository, installs dependencies, and compiles `stable-diffusion.cpp` with CUDA.
-2. **Step 3 (Model Selection)**: Downloads the **Full Base Model** (`--base-q4`, 30–50 steps) or **Viggle Turbo** (`--turbo-q4`, 4 steps) directly from HuggingFace.
-3. **Step 5 (Segmentation-Aware Editing)**: 
-   - Define the target region: `"the hand saw, wooden block, and hands"`.
-   - Enter editing instruction: `"An elderly baker in a clean kitchen cleanly slicing a gourmet chocolate cake with a chef knife, natural hands"`.
-   - Negative prompts: `"saw teeth, jagged blade, mangled hands, extra fingers, dirty table, wood shavings, cartoon, blurry"`.
-   - Configure **30–40 steps** and **CFG 4.5**.
-   - Inspect diagnostic mask overlays (`three_mask_panel.png`) and the pixel-preserved final output displayed inline.
+```bash
+modal deploy qwen_image_turbo.py
+```
 
+Once deployed, Modal gives you:
+1. **A permanent HTTPS Web Endpoint**:
+   ```
+   https://<your-username>--qwen-image-turbo-model-web.modal.run?prompt=your+prompt+here
+   ```
+2. **A callable Python Class** that can be queried from any local script without redeploying.
+
+---
+
+### 5. Generate Images via Local Client (`generate.py`)
+
+With the app deployed, use [`generate.py`](generate.py) to trigger generations instantly from your terminal:
+
+```bash
+# Basic generation
+python3 generate.py "an astronaut floating in deep space next to a glowing nebula"
+
+# Custom output file and seed
+python3 generate.py "a majestic eagle flying over snowy mountains" --output eagle.png --seed 42
+```
+
+- **Cold Start (first request if idle >5 min)**: Boots container, mounts cache, loads into VRAM, and generates (~10–12s total).
+- **Hot Request (within 5 minutes of previous request)**: **~2.9s inference (~8s total roundtrip)** with **zero model reloading**.
+
+---
+
+## Parallel Generation & Benchmark
+
+Modal natively supports concurrent fan-out across GPU containers. Run the benchmark suite to generate 5 complex images in parallel:
+
+```bash
+python3 generate_batch.py
+```
+
+### Verified Benchmark Performance
+
+| # | Prompt / Concept | Latency | Resolution | File Size |
+|---|---|---|---|---|
+| **1** | Ancient Library (Vaulted ceiling, fireplace) | **9.58s** | 1024×1024 RGBA | 2.1 MB |
+| **2** | Chameleon Macro (Scales, bokeh, NatGeo) | **12.24s** | 1024×1024 RGBA | 1.7 MB |
+| **3** | Cyberpunk Hypercar (Neon city, wet asphalt) | **15.82s** | 1024×1024 RGBA | 1.8 MB |
+| **4** | Tokyo Ramen Shop (Rainy night, lanterns) | **19.96s** | 1024×1024 RGBA | 1.6 MB |
+| **5** | Cliffside Castle (Sea of clouds, golden hour) | **24.25s** | 1024×1024 RGBA | 1.8 MB |
+
+- **Total Wall-Clock Time (All 5 Images):** **24.25 seconds**
+- **Effective Throughput:** **~12.4 images / minute** (~0.21 images / second)
+- **Fastest Single Image:** **9.58 seconds**
+- **Median Latency:** **15.82 seconds**
+
+---
+
+## Cost & Economics (Nvidia L40S)
+
+Modal charges by the exact second of compute used.
+
+| Component | Pricing Rate | Cost Impact |
+|---|---|---|
+| **Nvidia L40S (48 GB)** | **$1.95 / hour** ($0.00054 / sec) | **~$0.0022 per image** (~460 images / $1.00) |
+| **Idle Warm Container** | 5-minute scaledown window | ~$0.16 max to keep GPU warm between requests |
+| **Volume Storage (`hf-cache`)** | $0.09 / GiB / month | ~$0.06 / day for ~20 GB model cache |
+| **Free Starter Credit** | $30.00 / month | Covers **~13,000+ image generations** per month |
+
+---
+
+## Technical Architecture Details
+
+### Model & Pipeline Configuration
+- **Base Pipeline:** `Qwen/Qwen-Image-2.1` using `QwenImage21Pipeline` (`diffusers>=0.37.0.dev0`).
+- **Text & Conditioning Encoder:** `Qwen3VLProcessor` + `Qwen3VLForConditionalGeneration` (`transformers>=5.17`). Requires `torchvision` and `sentencepiece`.
+- **LoRA Distillation:** `Viggle/Qwen-Image-2.1-viggle-turbo` (`Qwen-Image-2.1-viggle-turbo-v0.3-6step-lora-r256.safetensors`, 1.3 GB).
+- **FlowMatch Scheduler:** `FlowMatchEulerDiscreteScheduler` loaded directly from Viggle's `subfolder="scheduler"` with explicit 6-step sigmas:
+  ```python
+  STEPS = 6
+  SIGMAS = [1.0, 0.9375, 0.875, 0.75, 0.5, 0.25]
+  ```
+- **Precision:** `torch.bfloat16` throughout DiT and text encoder for high fidelity and reduced VRAM footprint.
+
+---
+
+## Archived Legacy Workflows
+
+All previous local deployment tooling—including GGUF models, the C++ `stable-diffusion.cpp` engine, and the segmentation-aware pixel preservation editor—have been preserved in [`archive/`](archive/):
+
+- **Local C++ Engine & Scripts:** [`archive/setup.sh`](archive/setup.sh), [`archive/run_inference.sh`](archive/run_inference.sh), [`archive/edit_image.sh`](archive/edit_image.sh), [`archive/download_models.sh`](archive/download_models.sh).
+- **Segmentation-Aware Editor:** [`archive/edit_segmented.py`](archive/edit_segmented.py) and [`archive/benchmark_preservation.py`](archive/benchmark_preservation.py).
+- **Google Colab Notebooks:** [`archive/colab_runner.ipynb`](archive/colab_runner.ipynb) and [`archive/colab_runner_drive.ipynb`](archive/colab_runner_drive.ipynb).
+- **Previs Storyboard Pipeline:** [`archive/previs.py`](archive/previs.py) and [`archive/benchmark_previs.py`](archive/benchmark_previs.py).
+- **Local GGUF Weights & Engine:** [`archive/models/`](archive/models/) and [`archive/stable-diffusion.cpp/`](archive/stable-diffusion.cpp/).
