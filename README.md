@@ -10,7 +10,7 @@ Generates photorealistic **1024×1024 RGBA** images in **~2.9 seconds** of GPU i
 
 - **Ultra-Fast 6-Step Generation**: Distilled from 40 steps down to 6 steps using Viggle Turbo v0.3 LoRA with calibrated flow-matching sigmas.
 - **Serverless Cloud GPU (Nvidia L40S)**: Peaks at ~26 GB VRAM during inference, comfortably fitting within the L40S's 48 GB memory at $1.95/hr (less than half the cost of an H100).
-- **Zero Reload Overhead (Warm Containers)**: Configured with `scaledown_window=300` (5 minutes) and persistent deployment (`modal deploy`), keeping the model resident in GPU memory so subsequent prompts skip model initialization entirely.
+- **Zero Reload Overhead (Warm Containers)**: Configured with `scaledown_window=120` (2 minutes) and persistent deployment (`modal deploy`), keeping the model resident in GPU memory so subsequent prompts skip model initialization entirely.
 - **Persistent Weight Caching**: Model weights and LoRAs are cached inside a persistent `modal.Volume` (`hf-cache`), eliminating repetitive 20 GB downloads.
 - **Parallel Dispatch & Benchmarking**: Supports concurrent async requests (`Model.generate.remote.aio`) to generate image batches simultaneously.
 - **FastAPI Web Endpoint**: Includes a built-in HTTPS endpoint for direct web integration.
@@ -123,8 +123,8 @@ python3 generate.py "an astronaut floating in deep space next to a glowing nebul
 python3 generate.py "a majestic eagle flying over snowy mountains" --output eagle.png --seed 42
 ```
 
-- **Cold Start (first request if idle >5 min)**: Boots container, mounts cache, loads into VRAM, and generates (~10–12s total).
-- **Hot Request (within 5 minutes of previous request)**: **~2.9s inference (~8s total roundtrip)** with **zero model reloading**.
+- **Cold Start (first request if idle >2 min)**: Boots container, mounts cache, loads into VRAM, and generates (~10–12s total).
+- **Hot Request (within 2 minutes of previous request)**: **~2.9s inference (~8s total roundtrip)** with **zero model reloading**.
 
 ---
 
@@ -160,7 +160,7 @@ Modal charges by the exact second of compute used.
 | Component | Pricing Rate | Cost Impact |
 |---|---|---|
 | **Nvidia L40S (48 GB)** | **$1.95 / hour** ($0.00054 / sec) | **~$0.0022 per image** (~460 images / $1.00) |
-| **Idle Warm Container** | 5-minute scaledown window | ~$0.16 max to keep GPU warm between requests |
+| **Idle Warm Container** | 2-minute scaledown window | ~$0.065 max to keep GPU warm between requests |
 | **Volume Storage (`hf-cache`)** | $0.09 / GiB / month | ~$0.06 / day for ~20 GB model cache |
 | **Free Starter Credit** | $30.00 / month | Covers **~13,000+ image generations** per month |
 

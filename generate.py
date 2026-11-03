@@ -3,7 +3,7 @@
 Deploy once:
     modal deploy qwen_image_turbo.py
 
-Then run anytime instantly without reloading the model (stays warm for 5 minutes):
+Then run anytime instantly without reloading the model (stays warm for 2 minutes):
     python generate.py "a majestic eagle flying over snowy mountains"
     python generate.py "cyberpunk alleyway in rain" --output cyber.png --seed 42
 """

@@ -44,7 +44,7 @@ SIGMAS = [1.0, 0.9375, 0.875, 0.75, 0.5, 0.25]
     gpu="L40S",
     volumes={"/cache": cache},
     timeout=1800,
-    scaledown_window=300,  # shut the GPU down after 5 idle minutes
+    scaledown_window=120,  # shut the GPU down after 2 idle minutes
 )
 class Model:
     @modal.enter()
